@@ -1,0 +1,922 @@
+a<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Quadro de Status de Pedidos da Seoul Chicken</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <!-- FontAwesome 아이콘 스타일시트를 로드 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+
+        #dailyTotal, #monthlyTotal {
+            margin-left: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+                /* 테이블을 포함할 부모 컨테이너 설정 */
+        .table-container {
+            display: flex; /* 가로로 배치 */
+            justify-content: space-between; /* 여백 조정 */
+            align-items: flex-start; /* 위쪽 정렬 */
+            gap: 1%; /* 테이블 간 간격 */
+        }
+
+        /* 왼쪽 테이블 (40%) */
+        #dataTable {
+            width: 40%; /* 왼쪽 테이블 너비 */
+            border-collapse: collapse;
+            word-wrap: break-word;
+            table-layout: fixed;
+        }
+
+        /* 오른쪽 테이블 (60%) */
+        #deliveryTable {
+            width: 58%; /* 오른쪽 테이블 너비 */
+            border-collapse: collapse;
+            word-wrap: break-word;
+            table-layout: fixed;
+        }
+        th, td {
+        text-align: center;
+        border: 1px solid #ddd;
+        padding: 4px; /* 간격을 줄임 */
+        overflow-wrap: break-word;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        th:nth-child(5), td:nth-child(5) {
+            width: 300px; /* Order List 열을 다른 필드보다 3배 넓게 설정 */
+        }
+        @media screen and (max-width: 768px) {
+            table {
+                width: 100%; /* 모바일에서는 전체 폭을 차지 */
+                float: none; /* 세로로 배치 */
+            }
+
+            th, td {
+                padding: 6px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            button, label, select {
+                font-size: 14px;
+            }
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable {
+                visibility: visible;
+                position: absolute;
+                left: 0;
+                top: 0;
+                font-size: 120%;
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Quadro de Status de Pedidos da Seoul Chicken</h1>
+    <label for="dateFilter">Filter by Date:</label>
+    <select id="dateFilter">
+        <option value="all">All Dates</option>
+    </select>
+    <button id="enableSoundButton">Click to Enable Sound</button>
+    <!-- 엑셀 다운로드 버튼 추가 -->
+    <button id="downloadExcelButton">Download Excel</button>
+
+    <span id="dailyTotal" style="margin-left: 20px; font-weight: bold;">일 매출: 0</span>
+    <span id="monthlyTotal" style="margin-left: 20px; font-weight: bold;">월 매출: 0</span>
+    
+    <script>
+        // 엑셀 파일로 데이터를 저장하는 함수
+    function downloadExcel() {
+        // 테이블 데이터 가져오기
+        let tableData = [];
+        const headers = ['Number', 'Date', 'Timestamp', 'Table Number', 'Order List', 'Qty', 'Total Amount'];
+        tableData.push(headers); // 첫 번째 행: 헤더
+
+        // 테이블에서 데이터 읽기
+        allData.forEach((item, index) => {
+            const data = item.data;
+            const date = new Date(data.timestamp).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+            const time = new Date(data.timestamp).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+            const orderList = JSON.stringify(data.orderList)
+                .replace(/[\[\]{}"]/g, '')
+                .split(',')
+                .join('\n'); // 주문 목록을 줄바꿈으로 변환
+            const qty = (orderList.match(/"\d+"/g) || []).map(num => num.replace(/"/g, '')).join('\n'); // 수량
+            const rowData = [
+                index + 1,
+                date,
+                time,
+                data.tableNumber || '',
+                orderList,
+                qty,
+                data.totalAmount || ''
+            ];
+            tableData.push(rowData);
+        });
+
+        // CSV 포맷으로 변환
+        const csvContent = tableData
+            .map(row => row.map(field => `"${field}"`).join(','))
+            .join('\r\n');
+
+        // UTF-8 BOM 추가
+        const utf8Bom = '\uFEFF'; // UTF-8 BOM (Byte Order Mark)
+        const finalCsvContent = utf8Bom + csvContent;
+
+        // Blob 생성 및 다운로드
+        const blob = new Blob([finalCsvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'SeoulChickenOrders.csv'; // 파일명 지정
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // 버튼 클릭 이벤트 리스너 추가
+    document.getElementById('downloadExcelButton').addEventListener('click', downloadExcel);
+
+    </script>
+<div class="table-container">
+    <!-- 왼쪽 테이블 -->
+    <table id="dataTable" border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Data</th>
+                <th>Tempo</th>
+                <th>Mesa</th>
+                <th>Pedidos</th>
+                <th>Qty</th>
+                <th>Valor</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- 오른쪽쪽: 배달 전용 테이블 -->
+    <table id="deliveryTable" border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Data</th>
+                <th>Tempo</th>
+                <th>Mesa</th>
+                <th>Pedidos</th>
+                <th>Qty</th>
+                <th>Valor</th>
+                <th>Nome</th>
+                <th>Celu.</th>
+                <th>Endereço</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- Notification Sound -->
+    <audio id="notificationSound" src="notification.mp3" preload="auto"></audio>
+
+    <!-- 인쇄할 내용을 담는 숨겨진 영역 -->
+    <div id="printable" style="display:none;"></div>
+
+    <script>
+        // Firebase 설정 정보 (Firebase 콘솔에서 가져온 정보를 여기에 추가하세요)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBltwkIkocgAMya7_lKglLVikl9dIzegoI",
+            authDomain: "seoulchicken-fa390.firebaseapp.com",
+            databaseURL: "https://seoulchicken-fa390-default-rtdb.firebaseio.com",
+            projectId: "seoulchicken-fa390",
+            storageBucket: "seoulchicken-fa390.appspot.com",
+            messagingSenderId: "159382576680",
+            appId: "1:159382576680:web:8d5440ea41ba4cb89d9f1d",
+            measurementId: "G-FRCNM1T9JB"
+        };
+
+        // Firebase 초기화
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database(app);
+
+        const dateFilter = document.getElementById('dateFilter'); // 날짜 필터 드롭다운
+        const tableBody = document.querySelector('#dataTable tbody'); // 테이블 바디
+        const notificationSound = document.getElementById('notificationSound'); // 알림 소리
+        const enableSoundButton = document.getElementById('enableSoundButton'); // 소리 활성화 버튼
+
+        let soundEnabled = false; // 소리 재생 가능 여부
+        let count = 1; // 데이터 번호를 기록하기 위한 카운터
+        let allData = []; // 모든 데이터를 저장할 배열
+
+
+        window.onload = function() {
+        const passwords = ["Ji1213k", "4321"]; // 허용할 비밀번호 목록
+
+        // 비밀번호 입력 모달 생성
+        const passwordModal = document.createElement("div");
+        passwordModal.id = "passwordModal";
+        passwordModal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5); /* 반투명 검정 배경 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        `;
+
+        // 모달 내용 구성
+        passwordModal.innerHTML = `
+            <div style="
+                background: #ffffff; 
+                padding: 30px 20px; 
+                border-radius: 12px; 
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); 
+                text-align: center; 
+                max-width: 350px; 
+                width: 90%;
+            ">
+                <h2 style="
+                    margin-bottom: 20px; 
+                    font-size: 1.5em; 
+                    color: #333;
+                ">비밀번호 입력</h2>
+                <input type="password" id="passwordInput" placeholder="비밀번호를 입력하세요" style="
+                    width: 100%; 
+                    padding: 10px; 
+                    font-size: 1em; 
+                    margin-bottom: 15px; 
+                    border: 1px solid #ddd; 
+                    border-radius: 8px; 
+                    box-sizing: border-box;
+                " />
+                <button id="submitPassword" style="
+                    width: 100%; 
+                    padding: 10px; 
+                    font-size: 1em; 
+                    background: #007BFF; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 8px; 
+                    cursor: pointer; 
+                    transition: background 0.3s ease;
+                ">확인</button>
+            </div>
+        `;
+
+        document.body.appendChild(passwordModal);
+
+        // 기존 버튼 클릭 이벤트를 수정하여 검증 로직을 함수로 분리
+        document.getElementById("submitPassword").addEventListener("click", () => {
+            verifyPassword(); // 비밀번호 검증 로직 호출
+        });
+
+        // 새로운 코드: Enter 키 입력 이벤트 추가
+        document.getElementById("passwordInput").addEventListener("keydown", (event) => {
+            if (event.key === "Enter") { // Enter 키 입력 확인
+                verifyPassword(); // 비밀번호 검증 로직 호출
+            }
+        });
+
+        // 비밀번호 검증 로직을 함수로 분리
+        function verifyPassword() {
+            const inputPassword = document.getElementById("passwordInput").value;
+            if (passwords.includes(inputPassword)) {
+                document.body.removeChild(passwordModal); // 모달 닫기
+
+                // 비밀번호 확인 후 데이터 로드
+                loadDataFromLocalStorage();
+                setupRealtimeUpdates();
+                setTimeout(loadDataFromFirebase, 500);
+            } else {
+                alert("비밀번호가 틀렸습니다. 다시 시도하세요.");
+            }
+        }
+    };
+
+
+
+        // 사용자가 버튼을 클릭하면 소리 재생 활성화
+        enableSoundButton.addEventListener('click', () => {
+            soundEnabled = true;
+            playNotificationSound(); // 소리가 제대로 작동하는지 테스트
+            enableSoundButton.style.display = 'none'; // 버튼 숨기기
+        });
+
+        // 소리 재생 함수: 소리가 자동으로 재생될 수 있도록 처리
+        function playNotificationSound() {
+            if (soundEnabled) {
+                notificationSound.volume = 1.0; // 최대 볼륨 설정
+                notificationSound.currentTime = 0; // 소리를 처음부터 재생
+                repeatSound(3); // 소리를 3번 반복 재생
+            }
+        }
+
+        // 소리 반복 재생 함수
+        function repeatSound(repeatCount) {
+            let playCount = 0;
+
+            function playAgain() {
+                if (playCount < repeatCount) {
+                    notificationSound.play().then(() => {
+                        playCount++;
+                        notificationSound.onended = playAgain; // 소리가 끝나면 다시 재생
+                    }).catch(error => {
+                        console.error("소리 재생 중 오류 발생:", error);
+                    });
+                }
+            }
+
+            playAgain(); // 첫 재생 호출
+        }
+
+        // 알림 권한 요청
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    console.log("알림 권한 허용됨");
+                }
+            });
+        }
+
+        // 새로운 주문 알림 생성 함수
+        function showNotification() {
+            if (Notification.permission === "granted") {
+                const notification = new Notification("새로운 주문이 들어왔습니다!", {
+                    body: "클릭하여 소리를 재생하세요.",
+                    icon: "notification_icon.png" // 알림 아이콘 (원하는 이미지로 교체 가능)
+                });
+
+                // 사용자가 알림을 클릭하면 소리 재생
+                notification.onclick = () => {
+                    playNotificationSound();
+                    notification.close(); // 알림 닫기
+                };
+            }
+        }
+
+        // Pront 상태를 Local Storage에 저장하는 함수
+        function saveProntoState(key, isPronto) {
+            let prontoState = JSON.parse(localStorage.getItem('prontoState')) || {};
+            prontoState[key] = isPronto;
+            localStorage.setItem('prontoState', JSON.stringify(prontoState));
+        }
+
+        // Pront 상태를 Local Storage에서 불러오는 함수
+        function loadProntoState(key) {
+            let prontoState = JSON.parse(localStorage.getItem('prontoState')) || {};
+            return prontoState[key] || false;
+        }
+
+        // 데이터를 Local Storage에 저장하는 함수
+        function saveDataToLocalStorage() {
+            localStorage.setItem('firebaseData', JSON.stringify(allData));
+        }
+
+        // Local Storage에서 데이터를 불러오는 함수
+        function loadDataFromLocalStorage() {
+            const storedData = localStorage.getItem('firebaseData');
+            if (storedData) {
+                allData = JSON.parse(storedData);
+                allData.forEach(item => {
+                    displayData(item.key, item.data);
+                });
+                populateDateFilter(); // 날짜 필터에 값 추가
+            }
+        }
+
+
+    // 데이터를 테이블로 표시하는 함수 (최종 완성)
+        function displayData(key, data) {
+            // 테이블 선택: tableNumber가 99면 오른쪽 테이블, 아니면 왼쪽 테이블
+            const targetTableBody = Number(data.tableNumber) === 99 ? 
+                document.querySelector('#deliveryTable tbody') : 
+                document.querySelector('#dataTable tbody'); // 오른쪽 또는 왼쪽 테이블 선택
+
+            const row = document.createElement('tr'); // 새로운 행 생성
+
+            // 각 데이터 필드를 별도로 가져오기
+            const number = count++; // 데이터 번호는 1부터 시작하여 새로 추가될 때마다 증가
+            const tableNumber = data.tableNumber || 'N/A'; // 테이블 번호가 없으면 'N/A'
+            const timestamp = data.timestamp || 'N/A'; // 타임스탬프가 없으면 'N/A'
+
+            // 타임스탬프에서 날짜와 시간 부분 분리
+            const dateObj = new Date(timestamp); // 타임스탬프를 Date 객체로 변환
+            const date = dateObj.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }); // 브라질 시간대로 날짜 추출
+            const time = dateObj.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false }); // 24시간 형식 시간 추출
+
+            let orderList = ''; // 주문 목록 초기화
+
+            // 새로운 기능: orderList가 배열 형태일 경우 처리
+            if (data.orderList && Array.isArray(data.orderList)) {
+                orderList = data.orderList
+                    .map(item => `${item.name}: ${item.quantity}`) // name과 quantity를 한 줄로 표시
+                    .join('<br>'); // 각 항목을 줄바꿈 처리
+            }
+
+            // 기존 기능 유지: orderList가 문자열 형태일 경우 기존 처리 방식 적용
+            orderList = data.orderList ? JSON.stringify(data.orderList) : ''; // 주문 목록 JSON 문자열화
+            orderList = orderList.replace(/[\[\]]/g, ''); // '[' 와 ']' 제거
+            orderList = orderList.replace(/."quantity"/g, ''); // "quantity" 제거
+            orderList = orderList.split('},{').join('},<br>{'); // '},{'마다 줄바꿈을 위해 <br> 추가
+
+            // "name": 패턴 제거
+            orderList = orderList.replace(/"\s*name\s*":\s*"/g, '');
+
+            // 불필요한 공백과 중괄호 제거
+            orderList = orderList.replace(/{\s*/g, '{').replace(/\s*}/g, '}');
+            orderList = orderList.replace(/{/g, '').replace(/}/g, '');
+
+            // Name, Contact, Address 필드 가져오기
+            const name = data.customerName || 'N/A'; // 이름이 없으면 'N/A'
+            const contact = data.customerContact || 'N/A'; // 연락처가 없으면 'N/A'
+            const address = data.customerAddress || 'N/A'; // 주소가 없으면 'N/A'
+
+            const totalAmount = data.totalAmount || 'N/A'; // 총 금액이 없으면 'N/A'
+
+            // 키워드 배열 정의
+            const blueKeywords = ['chicken', 'meia/meia', 'pork']; // 파란색으로 표시할 키워드
+            const orangeKeywords = ['teokpoki', 'lapokki', 'batata']; // 주황색으로 표시할 키워드
+            const yellowKeywords = [
+                "Coca", "Coca Zero", "Guaraná", "Fanta Uva", "Fanta Maracujá",
+                "Fanta Laranja", "Sprite", "Schweppes", "Soda Melancia", "Soda de Melão",
+                "Bong Bong Uva", "Bong. Morango", "Água", "H2Oh", "Valle Uva",
+                "Valle Pêssego", "Valle Goiaba", "Valle Manga", "Coca 600ml", 
+                "Zero 600ml", "Original", "Heineken", "Soju", "Sou de Fruta"
+            ].map(keyword => keyword.toLowerCase()); // 모두 소문자로 변환
+
+            // 특정 키워드를 포함한 줄에 색상을 적용
+            orderList = orderList
+                .split('<br>') // 줄을 '<br>' 기준으로 분리
+                .map(line => {
+                    // 파란색 키워드가 포함된 경우
+                    if (blueKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
+                        return `<span style="color: red; font-weight: bold;">${line}</span>`; // 빨간색으로 스타일링
+                    }
+                    // 주황색 키워드가 포함된 경우
+                    if (orangeKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
+                        return `<span style="color: green; font-weight: bold;">${line}</span>`; // 녹색으로 스타일링
+                    }
+                    // 노란색 키워드가 포함된 경우
+                    if (yellowKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
+                        return `<span style="color: blue; font-weight: bold;">${line}</span>`;  // 파란색으로 스타일링
+                    }
+                    return line; // 다른 줄은 그대로 유지
+                })
+                .join('<br>'); // 다시 줄바꿈으로 합침
+
+            // 수량 추출: 따옴표 안의 숫자만 추출
+            const qtyMatches = orderList.match(/"\d+"/g); // 따옴표 안에 있는 숫자만 추출
+            let qtyText = '';
+            if (qtyMatches) {
+                qtyText = qtyMatches.map(num => num.replace(/"/g, '')).join('<br>'); // 각 숫자를 줄바꿈으로 연결하여 표시
+            }
+
+            // 각 필드를 셀로 만들어 테이블에 추가
+            const numberCell = document.createElement('td');
+            const dateCell = document.createElement('td'); // Date 셀
+            const timestampCell = document.createElement('td'); // 시간만 표시되는 셀
+            const tableNumberCell = document.createElement('td');
+            const orderListCell = document.createElement('td');
+            const nameCell = document.createElement('td'); // 이름 셀
+            const contactCell = document.createElement('td'); // 연락처 셀
+            const addressCell = document.createElement('td'); // 주소 셀
+            const qtyCell = document.createElement('td'); // Qty 셀 추가
+            const totalAmountCell = document.createElement('td');
+            const actionCell = document.createElement('td'); // Action 셀
+
+           // Pront 버튼 생성
+            const prontButton = document.createElement('button');
+            prontButton.innerHTML = '<i class="fas fa-check"></i>'; // 체크 아이콘
+            prontButton.title = 'Pronto'; // 버튼 설명
+            prontButton.onclick = function() {
+                row.style.backgroundColor = '#2F4F4F'; // Pront 클릭 시 배경색 변경
+                saveProntoState(key, true); // Pronto 상태 저장
+            };
+
+            // Cancel 버튼 생성
+            const cancelButton = document.createElement('button');
+            cancelButton.innerHTML = '<i class="fas fa-times"></i>'; // 취소 아이콘
+            cancelButton.title = 'Cancel'; // 버튼 설명
+            cancelButton.onclick = function() {
+                row.style.backgroundColor = ''; // Cancel 클릭 시 배경색 초기화
+                saveProntoState(key, false); // Pronto 상태 초기화
+            };
+
+            // Print 버튼 생성
+            const printButton = document.createElement('button');
+            printButton.innerHTML = '<i class="fas fa-print"></i>'; // 프린터 아이콘
+            printButton.title = 'Print'; // 버튼 설명
+            printButton.onclick = function() {
+                printReceipt(data); // Print 버튼 클릭 시 영수증 인쇄
+            };
+
+            // Delete 버튼 생성
+            const deleteButton = document.createElement('button');
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i>'; // 휴지통 아이콘
+            deleteButton.title = 'Delete'; // 버튼 설명
+            deleteButton.onclick = function () {
+                deleteRow(row, key); // Delete 버튼 클릭 시 행 삭제
+            };
+
+
+            // 테이블 행 및 Firebase에서 데이터 삭제
+        function deleteRow(row, key) {
+            // Firebase에서 데이터 삭제
+            const isPronto = loadProntoState(key); // Pronto 상태 확인
+
+        if (isPronto) {
+            // Pronto 상태라면 비밀번호 입력 요구
+            const password = prompt('Pronto 상태입니다. 삭제하려면 비밀번호를 입력하세요:');
+            if (password !== '1127') { // 올바른 비밀번호 확인
+                alert('비밀번호가 올바르지 않습니다. 삭제가 취소되었습니다.');
+                return; // 비밀번호가 틀리면 삭제 중단
+            }
+        }
+
+        // Firebase에서 데이터 삭제
+        const dbRef = database.ref('orders').child(key);
+        dbRef.remove()
+            .then(() => {
+                row.parentNode.removeChild(row); // 행 삭제
+                allData = allData.filter(item => item.key !== key); // 로컬 데이터에서도 삭제
+                saveDataToLocalStorage();
+                recalculateTotals();
+                alert('데이터가 성공적으로 삭제되었습니다.');
+            })
+            .catch((error) => {
+                console.error('데이터 삭제 중 오류 발생:', error);
+                alert('데이터 삭제 중 오류가 발생했습니다.');
+            });
+        }
+
+        // 매출 합계를 재계산하고 UI 업데이트
+        function recalculateTotals() {
+            let dailyTotalAmount = 0;
+            let monthlyTotalAmount = 0;
+
+            const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+            const currentMonth = today.split('/')[1] + '/' + today.split('/')[2];
+
+            allData.forEach(item => {
+                const totalAmountText = item.data.totalAmount || '0';
+                const totalAmount = parseFloat(totalAmountText.replace(/[^0-9.-]+/g, '')) || 0;
+                const itemDate = new Date(item.data.timestamp).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                const itemMonth = itemDate.split('/')[1] + '/' + itemDate.split('/')[2];
+
+                if (itemDate === today) {
+                    dailyTotalAmount += totalAmount;
+                }
+                if (itemMonth === currentMonth) {
+                    monthlyTotalAmount += totalAmount;
+                }
+            });
+
+            // UI 업데이트
+            document.getElementById('dailyTotal').textContent = `일 매출: ${dailyTotalAmount.toLocaleString('ko-KR')} 원`;
+            document.getElementById('monthlyTotal').textContent = `월 매출: ${monthlyTotalAmount.toLocaleString('ko-KR')} 원`;
+        }
+            // Pront, Cancel, Print, Delete 버튼 추가
+            actionCell.appendChild(prontButton);
+            actionCell.appendChild(cancelButton);
+            actionCell.appendChild(printButton);
+            actionCell.appendChild(deleteButton);
+
+            // 셀에 값 추가
+            numberCell.textContent = number; // 번호 표시
+            dateCell.textContent = date; // 날짜 표시
+            timestampCell.textContent = time; // 시간 표시
+            tableNumberCell.textContent = tableNumber; // 테이블 번호 표시
+            orderListCell.innerHTML = orderList; // 주문 목록 표시
+            nameCell.textContent = name; // 이름 표시
+            contactCell.textContent = contact; // 연락처 표시
+            addressCell.textContent = address; // 주소 표시
+            qtyCell.innerHTML = qtyText; // 수량 표시
+            totalAmountCell.textContent = totalAmount; // 총 금액 표시
+
+            // 행에 셀 추가
+            row.appendChild(numberCell);
+            row.appendChild(dateCell);
+            row.appendChild(timestampCell);
+            row.appendChild(tableNumberCell);
+            row.appendChild(orderListCell);
+            row.appendChild(qtyCell); // 수량 셀 추가
+            row.appendChild(totalAmountCell);
+            row.appendChild(nameCell); // 이름 셀 추가
+            row.appendChild(contactCell); // 연락처 셀 추가
+            row.appendChild(addressCell); // 주소 셀 추가
+            row.appendChild(actionCell); // Action 셀 추가
+
+            // Pront 상태에 따라 배경색 적용
+            if (loadProntoState(key)) {
+                row.style.backgroundColor = 'green'; // Pronto 상태일 경우 녹색 배경 적용
+            }
+
+            // 선택된 테이블에 행 추가
+            targetTableBody.insertBefore(row, targetTableBody.firstChild);
+        }
+
+
+        // 영수증 인쇄 함수
+        function printReceipt(data) {
+            // 출력할 내용을 HTML 형식으로 구성
+            const receiptContent = `
+                <div style="font-size: 12px; line-height: 1.5;">
+                    <p><strong>Table Number:</strong> ${data.tableNumber || ''}</p>
+                    <p><strong>Date:</strong> ${new Date(data.timestamp).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
+                    <p><strong>Time:</strong> ${new Date(data.timestamp).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
+                    <p><strong>Order List:</strong></p>
+                    <p>${JSON.stringify(data.orderList || {})
+                        .replace(/[\[\]{}"]/g, '')
+                        .split(',')
+                        .join('<br>')}</p>
+                    <p><strong>Total Amount:</strong> ${data.totalAmount || ''}</p>
+                </div>
+            `;
+
+            // 새 창에서 출력 준비
+            const printWindow = window.open('', '', 'height=500,width=400');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Receipt</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        div {
+                            width: 80mm; /* 영수증 폭 */
+                            font-size: 12px;
+                            line-height: 1.5;
+                        }
+                        @media print {
+                            body {
+                                margin: 0;
+                                padding: 0;
+                            }
+                            div {
+                                page-break-after: avoid; /* 페이지 나누기 방지 */
+                                margin: 0;
+                                padding: 0;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${receiptContent}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }
+    
+
+       // Firebase에서 기존 데이터 불러오기 (시간 역순으로 표시)
+function loadDataFromFirebase() {
+    const dbRef = database.ref('orders'); // 데이터가 저장된 정확한 경로로 설정
+    dbRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        const sortedKeys = Object.keys(data).sort((a, b) => new Date(data[b].timestamp) - new Date(data[a].timestamp)); // 타임스탬프 기준으로 역순 정렬
+
+        let dailyTotalAmount = 0; // 일 매출 초기화
+        let monthlyTotalAmount = 0; // 월 매출 초기화
+        const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const currentMonth = today.split('/')[1] + '/' + today.split('/')[2]; // 현재 월 (MM/YYYY)
+
+        sortedKeys.forEach((key) => {
+            if (!allData.some(item => item.key === key)) {
+                allData.push({ key, data: data[key] });
+                displayData(key, data[key]);
+
+                // Total Amount 합계 계산   
+                const totalAmountText = data[key].totalAmount || '0'; // null 또는 undefined일 경우 기본값 0 설정
+                const totalAmount = parseFloat(totalAmountText.replace(/[^0-9.-]+/g, '')) || 0; // 숫자 이외의 문자 제거
+                const itemDate = new Date(data[key].timestamp).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }); // 브라질 시간대와 포맷 적용
+                const itemMonth = itemDate.split('.')[0] + '.' + itemDate.split('.')[1]; // 연도와 월만 추출
+
+                if (itemDate === today) {
+                    dailyTotalAmount += totalAmount; // 오늘 날짜의 총 금액
+                }
+                if (itemMonth === currentMonth) {
+                    monthlyTotalAmount += totalAmount; // 현재 월의 총 금액
+                }
+            }
+        });
+
+        // 일 매출 및 월 매출 업데이트
+        document.getElementById('dailyTotal').textContent = `일 매출: ${dailyTotalAmount.toLocaleString('ko-KR')} 원`;
+        document.getElementById('monthlyTotal').textContent = `월 매출: ${monthlyTotalAmount.toLocaleString('ko-KR')} 원`;
+
+        saveDataToLocalStorage(); // 데이터를 Local Storage에 저장
+        populateDateFilter(); // 날짜 필터에 값 추가
+    });
+}
+
+       
+
+        // 날짜 필터 드롭다운을 채우는 함수
+        function populateDateFilter() {
+            const uniqueDates = [...new Set(allData.map(item => new Date(item.data.timestamp).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })))];
+
+            uniqueDates.forEach(date => {
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = date;
+                dateFilter.appendChild(option);
+            });
+        }
+
+        // 날짜 필터가 변경되었을 때 호출되는 함수
+        dateFilter.addEventListener('change', function() {
+            const selectedDate = dateFilter.value;
+            filterDataByDate(selectedDate);
+        });
+
+        // 선택한 날짜에 따라 데이터를 필터링하여 표시하는 함수
+        function filterDataByDate(date) {
+    tableBody.innerHTML = ''; // 기존 테이블 데이터 지우기
+    count = 1; // 카운터 초기화
+
+    let dailyTotalAmount = 0; // 일 매출 초기화
+    let monthlyTotalAmount = 0; // 월 매출 초기화
+
+    if (date === 'all') {
+        // 추가된 코드: 날짜 필터가 "All Dates"일 경우
+        allData.forEach(item => {
+            const itemDateObj = new Date(item.data.timestamp); // 데이터의 타임스탬프를 Date 객체로 변환
+            const totalAmountText = item.data.totalAmount || '0'; // null 또는 undefined일 경우 기본값 0 설정
+            const totalAmount = parseFloat(totalAmountText.replace(/[^0-9.-]+/g, '')) || 0; // 숫자 이외의 문자 제거
+
+            // 일 매출과 월 매출 누적
+            const itemDate = itemDateObj.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+            const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+            const itemMonth = itemDateObj.getMonth() + 1;
+            const itemYear = itemDateObj.getFullYear();
+            const currentMonth = new Date().getMonth() + 1;
+            const currentYear = new Date().getFullYear();
+
+            if (itemDate === today) {
+                dailyTotalAmount += totalAmount; // 오늘 날짜의 매출 누적
+            }
+            if (itemMonth === currentMonth && itemYear === currentYear) {
+                monthlyTotalAmount += totalAmount; // 이번 달 매출 누적
+            }
+
+            displayData(item.key, item.data); // 모든 데이터를 테이블에 표시
+        });
+    } else {
+        // 기존 코드: 특정 날짜 선택 시 필터링
+        const selectedDateParts = date.split('/'); // 'DD/MM/YYYY' 형식 분리
+        const selectedDay = parseInt(selectedDateParts[0], 10);
+        const selectedMonth = parseInt(selectedDateParts[1], 10); // 월은 1부터 시작
+        const selectedYear = parseInt(selectedDateParts[2], 10);
+
+        // 월 시작과 선택된 날짜의 끝 계산
+        const startOfMonth = new Date(selectedYear, selectedMonth - 1, 1); // 해당 월의 1일
+        const endOfSelectedDay = new Date(selectedYear, selectedMonth - 1, selectedDay, 23, 59, 59); // 선택된 날짜의 마지막 시간
+
+        allData.forEach(item => {
+            const itemDateObj = new Date(item.data.timestamp); // 데이터의 타임스탬프를 Date 객체로 변환
+            const itemDay = itemDateObj.getDate();
+            const itemMonth = itemDateObj.getMonth() + 1; // 월은 0부터 시작하므로 +1
+            const itemYear = itemDateObj.getFullYear();
+
+            // Total Amount 필드에서 숫자만 추출
+            const totalAmountText = item.data.totalAmount || '0'; // null 또는 undefined일 경우 기본값 0 설정
+            const totalAmount = parseFloat(totalAmountText.replace(/[^0-9.-]+/g, '')) || 0; // 숫자 이외의 문자 제거
+
+            // 일 매출 계산 (선택한 날짜와 동일한 경우)
+            if (
+                itemDay === selectedDay &&
+                itemMonth === selectedMonth &&
+                itemYear === selectedYear
+            ) {
+                displayData(item.key, item.data); // 해당 날짜의 데이터만 표시
+                dailyTotalAmount += totalAmount; // 선택된 날짜의 총 금액
+            }
+
+            // 월 매출 계산 (해당 월 1일부터 선택된 날짜까지)
+            if (
+                itemDateObj >= startOfMonth &&
+                itemDateObj <= endOfSelectedDay
+            ) {
+                monthlyTotalAmount += totalAmount;
+            }
+        });
+    }
+
+    // 일 매출 및 월 매출 업데이트
+    document.getElementById('dailyTotal').textContent = `일 매출: ${dailyTotalAmount.toLocaleString('ko-KR')} 원`;
+    document.getElementById('monthlyTotal').textContent = `월 매출: ${monthlyTotalAmount.toLocaleString('ko-KR')} 원`;
+}
+
+        // 실시간으로 새 데이터가 추가될 때 테이블에 추가 및 알림 소리 재생
+        function setupRealtimeUpdates() {
+    const dbRef = database.ref('orders');
+
+    dbRef.on('child_added', (snapshot) => {
+        const newData = { key: snapshot.key, data: snapshot.val() };
+
+        // 중복 데이터 추가 방지
+        if (!allData.some(item => item.key === newData.key)) {
+            allData.push(newData); // 새 데이터를 저장
+
+            // 필터된 데이터만 테이블에 표시하도록 수정된 부분
+            if (dateFilter.value === 'all') {
+                displayData(newData.key, newData.data); // 모든 데이터를 테이블에 추가
+            } else {
+                const selectedDate = dateFilter.value; // 현재 선택된 날짜
+                const itemDate = new Date(newData.data.timestamp).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+                if (selectedDate === itemDate) {
+                    displayData(newData.key, newData.data); // 선택된 날짜의 데이터만 추가
+                }
+            }
+
+            saveDataToLocalStorage(); // 새 데이터를 Local Storage에 저장
+            updateSales(newData.data); // 실시간 매출 업데이트
+        }
+
+        // 날짜 필터 업데이트
+        const newDate = new Date(newData.data.timestamp).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }); // 브라질 시간대와 포맷으로 변경
+        if (!Array.from(dateFilter.options).some(option => option.value === newDate)) {
+            const option = document.createElement('option');
+            option.value = newDate;
+            option.textContent = newDate;
+            dateFilter.appendChild(option);
+        }
+
+        // 필터 상태가 변경되었을 때 새 데이터 처리
+        if (dateFilter.value !== 'all' && dateFilter.value !== newDate) {
+            // 필터에 따라 데이터가 추가되지 않을 수 있으므로 알림만 표시
+            showNotification();
+        } else {
+            showNotification(); // 새 데이터가 추가될 때 알림 표시
+        }
+    });
+
+}
+
+        // **새로운 함수 추가: 매출 업데이트 처리**
+        function updateSales(newData) {
+        const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const currentMonth = today.split('/')[1] + '/' + today.split('/')[2]; // 현재 월 (MM/YYYY)
+
+        // 새로운 데이터의 총 금액 처리
+        const totalAmountText = newData.totalAmount || '0'; // null 또는 undefined일 경우 기본값 0 설정
+        const totalAmount = parseFloat(totalAmountText.replace(/[^0-9.-]+/g, '')) || 0; // 숫자 이외의 문자 제거
+        const itemDate = new Date(newData.timestamp).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const itemMonth = itemDate.split('/')[1] + '/' + itemDate.split('/')[2];
+
+        // 기존 UI에서 현재 매출 값 가져오기
+        let dailyTotalAmount = parseFloat(document.getElementById('dailyTotal').textContent.replace(/[^0-9.-]+/g, '')) || 0;
+        let monthlyTotalAmount = parseFloat(document.getElementById('monthlyTotal').textContent.replace(/[^0-9.-]+/g, '')) || 0;
+
+        // 조건에 따라 매출 업데이트
+        if (itemDate === today) {
+            dailyTotalAmount += totalAmount; // 오늘 날짜의 총 금액 추가
+        }
+        if (itemMonth === currentMonth) {
+            monthlyTotalAmount += totalAmount; // 현재 월의 총 금액 추가
+        }
+
+        // UI 업데이트
+        document.getElementById('dailyTotal').textContent = `일 매출: ${dailyTotalAmount.toLocaleString('ko-KR')} 원`;
+        document.getElementById('monthlyTotal').textContent = `월 매출: ${monthlyTotalAmount.toLocaleString('ko-KR')} 원`;
+    }
+        
+
+        // Local Storage에 1초마다 데이터를 저장하는 함수
+        setInterval(saveDataToLocalStorage, 1000); // 1초마다 데이터를 저장
+    </script>
+</body>
+</html>
