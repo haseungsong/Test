@@ -125,58 +125,6 @@
             max-width: 600px;
             margin: 0 auto;
         }
-        #booking-popup {
-            display:none;
-            position:fixed;
-            left:50%;
-            top:50%;
-            transform:translate(-50%, -50%);
-            width: 320px;
-            background:white;
-            border:1px solid #ccc;
-            padding:20px;
-            box-shadow:0 0 15px rgba(0,0,0,0.4);
-            border-radius:10px;
-            z-index:1000;
-        }
-
-        #booking-popup input, #booking-popup button {
-            width: 100%;
-            margin-top: 8px;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-
-        #booking-popup button {
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
-        #booking-popup button:first-of-type {
-            background: #28a745;
-            color: #fff;
-        }
-
-        #booking-popup button:last-of-type {
-            background: #ccc;
-            color: #333;
-        }
-
-        @media(max-width: 500px) {
-            #booking-popup {
-                width: 90vw;
-                padding: 15px;
-            }
-
-            #booking-popup input, #booking-popup button {
-                font-size: 14px;
-                padding: 8px;
-            }
-        }
-
-
-
     </style>
     <script>
         // Firebase 설정
@@ -273,7 +221,6 @@
                 document.getElementById("main-container").style.display = "flex"; 
                 document.getElementById("main-table-section").style.display = "block"; // ✅ 테이블도 보이게
 
-
                 // 내일 날짜 자동 설정
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -353,21 +300,8 @@
                         td.style.padding = "8px";
                         td.style.border = "1px solid #ccc";
 
-                        // 시간 셀 배경에 음영 추가
-                        td.style.backgroundColor = "#f9f9f9";
-
-                        // 예약 여부에 따른 색상 지정
-                        if (reservedTimes.includes(timeString)) {
-                            td.style.backgroundColor = "#ffdddd"; // 예약 완료: 연한 빨강
-                            td.style.color = "#990000";           // 텍스트 강조
-                        } else {
-                            td.style.backgroundColor = "#ddffdd"; // 예약 가능: 연한 초록
-                            td.style.color = "#006600";           // 텍스트 강조
-                        }
-
-
-                        // 7칸마다 줄바꿈
-                        if (tr.cells.length === 7) {
+                        // 6칸마다 줄바꿈
+                        if (tr.cells.length === 6) {
                             tr = table.insertRow();
                         }
 
@@ -407,18 +341,16 @@
 
             db.collection("bookings").add({
                 user: user.email,
-                date, time,
+                date: date,
+                time: time,
                 people: parseInt(people),
-                memberId, reserverName, remarks,
+                memberId: memberId,
+                reserverName: reserverName,
+                remarks: remarks,
                 status: "대기 중"
             }).then(() => {
                 alert("예약 요청이 완료되었습니다.");
-                closeBookingPopup();
-                // --- 여기 추가 ---
-                setTimeout(() => renderMainStatusTable(date), 300);  // Firebase write delay 보정 후 갱신
-                // ----------------
                 loadUserBookings();
-
             }).catch(error => {
                 console.error("예약 오류:", error);
             });
