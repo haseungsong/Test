@@ -98,10 +98,11 @@
             table.innerHTML = '';
 
             let h = 5;
-            let m = 12;
+            let m = 20;
             let tr = document.createElement('tr'); // 첫 번째 tr 생성
 
-            while (h < 11 || (h === 11 && m <= 0)) {
+            // 정확한 반복 조건 (11:20까지 포함)
+            while (h < 11 || (h === 11 && m <= 20)) {
                 let td = document.createElement('td');
                 let time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                 td.innerText = time;
@@ -111,8 +112,8 @@
                 td.onclick = () => openPopup(time);
                 tr.appendChild(td);
 
-                // 7칸이면 줄바꿈
-                if (tr.children.length === 7) {
+                // 너가 요구한건 6칸
+                if (tr.children.length === 6) {
                     table.appendChild(tr);
                     tr = document.createElement('tr');
                 }
