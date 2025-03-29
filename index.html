@@ -272,6 +272,7 @@
                 document.getElementById("status-button").style.display = "block"; 
                 document.getElementById("main-container").style.display = "flex"; 
                 document.getElementById("main-table-section").style.display = "block"; // ✅ 테이블도 보이게
+                document.getElementById("date-picker").style.display = "block"; // ⬅ 추가
 
                 // 내일 날짜 자동 설정
                 const tomorrow = new Date();
@@ -281,6 +282,7 @@
                 const dd = String(tomorrow.getDate()).padStart(2, '0');
                 const nextDateStr = `${yyyy}-${mm}-${dd}`;
                 document.getElementById('status-date').value = nextDateStr;
+                document.getElementById('main-date-picker').value = nextDateStr; // ⬅ 추가
 
                 renderMainStatusTable(nextDateStr);  // ✅ 아래 새로 만든 함수로 테이블 생성
                 loadUserBookings();
@@ -352,8 +354,21 @@
                         td.style.padding = "8px";
                         td.style.border = "1px solid #ccc";
 
-                        // 6칸마다 줄바꿈
-                        if (tr.cells.length === 6) {
+                        // 시간 셀 배경에 음영 추가
+                        td.style.backgroundColor = "#f9f9f9";
+
+                        // 예약 여부에 따른 색상 지정
+                        if (reservedTimes.includes(timeString)) {
+                            td.style.backgroundColor = "#ffdddd"; // 예약 완료: 연한 빨강
+                            td.style.color = "#990000";           // 텍스트 강조
+                        } else {
+                            td.style.backgroundColor = "#ddffdd"; // 예약 가능: 연한 초록
+                            td.style.color = "#006600";           // 텍스트 강조
+                        }
+
+
+                        // 7칸마다 줄바꿈
+                        if (tr.cells.length === 7) {
                             tr = table.insertRow();
                         }
 
