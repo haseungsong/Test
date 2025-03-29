@@ -282,7 +282,6 @@
                 const dd = String(tomorrow.getDate()).padStart(2, '0');
                 const nextDateStr = `${yyyy}-${mm}-${dd}`;
                 document.getElementById('status-date').value = nextDateStr;
-                document.getElementById('main-date-picker').value = nextDateStr; // ⬅ 추가
 
                 renderMainStatusTable(nextDateStr);  // ✅ 아래 새로 만든 함수로 테이블 생성
                 loadUserBookings();
