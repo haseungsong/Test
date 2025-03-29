@@ -1,456 +1,579 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>골프장 예약 시스템</title>
-
-    <!-- Google 로그인 SDK -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
     <style>
-        /* 기본 설정 */
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-        }
-        /* 상단바 */
-        #top-bar {
-            display: flex;
             justify-content: space-between;
-            align-items: center;
-            background: #333;
-            color: white;
-            padding: 10px 20px;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-        /* 관리자 버튼 */
-        #admin-button {
-            background-color: #ff6347;
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 5px;
-        }
-        /* 우측 컨트롤 */
-        #right-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        /* 날짜 선택 */
-        #select-date {
-            padding: 5px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        /* 로그인 버튼 */
-        #login-button {
-            background: #007bff;
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 5px;
-        }
-        /* 예약표 영역 */
-        #table-section {
-            margin-top: 70px;
             padding: 20px;
         }
-        /* 예약표 */
-        #status-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #status-table th, #status-table td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: center;
-        }
-        #status-table th {
-            background: #f5f5f5;
-        }
-        .reserved {
-            background: #ffc107;
-            cursor: not-allowed;
-        }
-        .available {
-            background: #d4edda;
+        #admin-button {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            padding: 10px;
+            background-color: #ff6347;
+            color: white;
+            border: none;
             cursor: pointer;
+            font-size: 16px;
         }
-        .popup {
+        #admin-popup {
             display: none;
             position: fixed;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
             background: white;
             border: 1px solid #ccc;
             padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            z-index: 1001;
-        }
-        .popup button {
-            margin-top: 10px;
-            padding: 8px;
-            background: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            width: 100%;
-            border-radius: 5px;
-        }
-        #admin-popup {
-            max-height: 80vh;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
             overflow-y: auto;
         }
-        @media(max-width: 600px) {
-            #top-bar {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            #right-controls {
-                width: 100%;
-                justify-content: space-between;
-                margin-top: 10px;
+        #booking-section {
+            width: 100%;
+        }
+
+        #booking-section input, 
+        #booking-section select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
+
+        #booking-section button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            background: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #booking-section button:hover {
+            opacity: 0.9;
+        }
+        #user-results {
+            width: 100%;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+        }
+         /* 예약 테이블 개선 */
+        #status-table th, #status-table td {
+            text-align: center;
+            font-size: 14px;
+        }
+        #status-table tr:hover {
+            opacity: 0.8;
+        }
+        #status-table th {
+            background: #f5f5f5;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        #status-table td {
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        @media (max-width: 600px) {
+            #status-popup {
+                width: 95vw;
+                max-width: none;
+                padding: 15px;
             }
             #status-table {
                 font-size: 12px;
             }
+            #status-table th, #status-table td {
+                padding: 6px;
+            }
+        }
+        /* 스타일에 추가 */
+        #status-popup button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 16px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        #status-popup button:hover {
+            opacity: 0.8;
+        }
+        #main-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
         }
     </style>
-</head>
-
-<body>
-
-        <!-- 상단바 -->
-        <div id="top-bar">
-            <!-- 왼쪽 관리자 버튼 -->
-            <button id="admin-button" onclick="openAdminPanel()">ADM</button>
-    
-            <!-- 오른쪽 -->
-            <div id="right-controls">
-                <!-- 날짜 선택기 -->
-                <input type="date" id="status-date" onchange="renderStatusTable()" />
-    
-                <!-- 상태창 버튼 -->
-                <button id="status-button" onclick="document.getElementById('status-popup').style.display='block'">Status</button>
-    
-                <!-- 로그인 -->
-                <div id="login-section">
-                    <button id="login-button" onclick="googleLogin()">Google 로그인</button>
-                </div>
-            </div>
-        </div>
-    
-        <!-- 유저 예약 결과 -->
-        <div id="main-container" style="display:none; flex-direction: column; gap: 20px; width: 100%; max-width:800px; margin:0 auto;">
-            <div id="user-results">
-                <h2>나의 예약 내역</h2>
-                <!-- 예약 내역 표시 -->
-            </div>
-        </div>
-    
-        <!-- 예약 팝업 -->
-        <div id="booking-popup" class="popup">
-            <h3>예약 신청</h3>
-            <label>날짜:</label>
-            <input type="text" id="popup-date" readonly><br>
-    
-            <label>시간:</label>
-            <input type="text" id="popup-time" readonly><br>
-    
-            <label>인원수:</label>
-            <input type="number" id="popup-people" min="1" max="4"><br>
-    
-            <label>회원번호:</label>
-            <input type="text" id="popup-member-id"><br>
-    
-            <label>예약자명:</label>
-            <input type="text" id="popup-reserver-name"><br>
-    
-            <label>비고:</label>
-            <input type="text" id="popup-remarks" placeholder="예: 10번홀부터"><br>
-    
-            <button onclick="bookTimeSlotPopup()">예약 신청</button>
-            <button onclick="closeBookingPopup()" style="background:gray;">닫기</button>
-        </div>
-    
-        <!-- 관리자 팝업 -->
-        <div id="admin-popup" class="popup">
-            <h2>예약 관리</h2>
-            <div id="booking-list"></div>
-            <button onclick="closeAdminPanel()">닫기</button>
-        </div>
-    
-        <!-- 예약현황 팝업 -->
-        <div id="status-popup" class="popup" style="max-width:600px;">
-            <h2>예약 가능 시간표</h2>
-            <table id="status-table" style="width:100%; border-collapse: collapse; margin-top:10px;">
-                <tr>
-                    <th>시간</th>
-                    <th>상태</th>
-                </tr>
-            </table>
-            <p id="status-summary" style="margin-top: 15px; font-weight:bold;"></p>
-            <button onclick="closeStatusPanel()">닫기</button>
-        </div>
-    
     <script>
-    
-    // ==================== Firebase 설정 ====================
-    const firebaseConfig = {
-        apiKey: "AIzaSyBXvjwzG6qpgW6W9H6-KBeXeJcqS1ZCdLA",
-        authDomain: "reservation-344b6.firebaseapp.com",
-        projectId: "reservation-344b6",
-        storageBucket: "reservation-344b6.appspot.com",
-        messagingSenderId: "191262639704",
-        appId: "1:191262639704:web:2c51ae1636eda33cfa2c2d"
-    };
-    
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    
-    // ==================== 페이지 로드시 ====================
-    document.addEventListener("DOMContentLoaded", function() {
-        // 관리자, Status 버튼 숨기기
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXvjwzG6qpgW6W9H6-KBeXeJcqS1ZCdLA",
+            authDomain: "reservation-344b6.firebaseapp.com",
+            projectId: "reservation-344b6",
+            storageBucket: "reservation-344b6.appspot.com",
+            messagingSenderId: "191262639704",
+            appId: "1:191262639704:web:2c51ae1636eda33cfa2c2d"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        document.addEventListener("DOMContentLoaded", function() {
+        // 로그인 전에는 관리자 버튼 숨김
         document.getElementById("admin-button").style.display = "none";
         document.getElementById("status-button").style.display = "none";
     });
 
-    // ==================== 구글 로그인 ====================
-function googleLogin() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).then(result => {
-        document.getElementById("login-section").style.display = "none"; // 로그인창 숨김
-        document.getElementById("admin-button").style.display = "block"; // 관리자 버튼 표시
-        document.getElementById("status-button").style.display = "block"; // 상태창 버튼 표시
-        document.getElementById("main-container").style.display = "flex"; // 예약내역 표시
-        generateTimeOptions();
-        loadUserBookings();
-    }).catch(error => {
-        console.error("로그인 오류: ", error);
-    });
-}
+            function openStatusPanel() {
+            const popup = document.getElementById("status-popup");
+            if (popup) {
+                popup.style.display = "block";
+                loadApprovedBookings();
+            } else {
+                console.error("Status 팝업이 존재하지 않습니다.");
+            }
+        }
 
-// ==================== 예약 현황 테이블 생성 ====================
-function renderStatusTable() {
-    const selectedDate = document.getElementById("status-date").value;
-    if (!selectedDate) return;
+        function closeStatusPanel() {
+            const popup = document.getElementById("status-popup");
+            if (popup) {
+                popup.style.display = "none";
+            } else {
+                console.error("Status 팝업을 찾을 수 없습니다.");
+            }
+        }
+            
+            function generateTimeOptions() {
+            const timeSelect = document.getElementById("time");
 
-    const table = document.getElementById("status-table");
-    table.innerHTML = `
-        <tr>
-            <th>시간</th>
-            <th>상태</th>
-        </tr>
-    `;
+            // 실시간으로 firestore의 승인된 예약을 감시함
+            db.collection("bookings").where("status", "==", "승인됨").onSnapshot(snapshot => {
+                // 승인된 시간 목록
+                let reservedTimes = [];
+                snapshot.forEach(doc => {
+                    reservedTimes.push(doc.data().time);
+                });
 
-    db.collection("bookings")
-        .where("date", "==", selectedDate)
-        .get()
-        .then(snapshot => {
-            const reservedTimes = [];
-            let totalPeople = 0;
+                // 드롭다운 초기화
+                timeSelect.innerHTML = "";
 
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                if (data.status === "승인됨") {
-                    reservedTimes.push(data.time);
-                    totalPeople += data.people;
+                // 시간 생성
+                let startHour = 5;
+                let startMinute = 20;
+                let endHour = 11;
+                let endMinute = 20;
+                let interval = 8;
+
+                let currentHour = startHour;
+                let currentMinute = startMinute;
+
+                while (currentHour < endHour || (currentHour === endHour && currentMinute <= endMinute)) {
+                    let timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+
+                    // 승인된 시간이 아니면 추가
+                    if (!reservedTimes.includes(timeString)) {
+                        let option = document.createElement("option");
+                        option.value = timeString;
+                        option.textContent = timeString;
+                        timeSelect.appendChild(option);
+                    }
+
+                    currentMinute += interval;
+                    if (currentMinute >= 60) {
+                        currentMinute -= 60;
+                        currentHour += 1;
+                    }
                 }
+            }, error => {
+                console.error("실시간 승인된 시간 불러오기 오류:", error);
             });
+        } 
 
-            let startHour = 5, startMinute = 20, endHour = 11, endMinute = 20, interval = 8;
-            let currentHour = startHour, currentMinute = startMinute;
-            let reservedCount = reservedTimes.length;
-            let totalSlot = 0;
+        function googleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then(result => {
+                document.getElementById("login-section").style.display = "none"; 
+                document.getElementById("admin-button").style.display = "block"; 
+                document.getElementById("status-button").style.display = "block"; 
+                document.getElementById("main-container").style.display = "flex"; 
+                document.getElementById("main-table-section").style.display = "block"; // ✅ 테이블도 보이게
 
-            while (currentHour < endHour || (currentHour === endHour && currentMinute <= endMinute)) {
-                totalSlot++;
-                let timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-                let row = table.insertRow();
+                // 내일 날짜 자동 설정
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const yyyy = tomorrow.getFullYear();
+                const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+                const dd = String(tomorrow.getDate()).padStart(2, '0');
+                const nextDateStr = `${yyyy}-${mm}-${dd}`;
+                document.getElementById('status-date').value = nextDateStr;
 
-                if (reservedTimes.includes(timeString)) {
-                    row.classList.add('reserved');
-                    row.insertCell(0).innerText = timeString;
-                    row.insertCell(1).innerText = "예약 완료";
-                } else {
-                    row.classList.add('available');
-                    row.onclick = () => openBookingPopup(selectedDate, timeString);
-                    row.insertCell(0).innerText = timeString;
-                    row.insertCell(1).innerText = "예약 가능";
-                }
+                renderMainStatusTable(nextDateStr);  // ✅ 아래 새로 만든 함수로 테이블 생성
+                loadUserBookings();
+            }).catch(error => {
+                console.error("로그인 오류: ", error);
+            });
+        }
 
-                row.cells[0].style.padding = "8px";
-                row.cells[0].style.border = "1px solid #ccc";
-                row.cells[1].style.padding = "8px";
-                row.cells[1].style.border = "1px solid #ccc";
+        function renderMainStatusTable(selectedDate) {
+            const table = document.getElementById("main-status-table");
+            table.innerHTML = `
+                <tr>
+                    <th colspan="6">예약 가능 시간표 (${selectedDate})</th>
+                </tr>
+            `;
 
-                currentMinute += interval;
-                if (currentMinute >= 60) {
-                    currentMinute -= 60;
-                    currentHour += 1;
-                }
+            db.collection("bookings")
+                .where("date", "==", selectedDate)
+                .get()
+                .then(snapshot => {
+                    const reservedTimes = [];
+                    let totalPeople = 0;
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.status === "승인됨") {
+                            reservedTimes.push(data.time);
+                            totalPeople += data.people;
+                        }
+                    });
+
+                    let startHour = 5, startMinute = 20, endHour = 11, endMinute = 20, interval = 8;
+                    let currentHour = startHour, currentMinute = startMinute;
+                    let reservedCount = reservedTimes.length;
+                    let totalSlot = 0;
+
+                    let tr = table.insertRow(); // 첫 행 만들기
+
+                    while (currentHour < endHour || (currentHour === endHour && currentMinute <= endMinute)) {
+                        totalSlot++;
+                        let timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+                        let td = tr.insertCell();
+
+                        // 예약 여부
+                        if (reservedTimes.includes(timeString)) {
+                            td.classList.add('reserved');
+                            td.innerHTML = `${timeString}<br>예약 완료`;
+                            td.style.pointerEvents = 'none'; // 클릭 막기
+                        } else {
+                            td.classList.add('available');
+                            td.innerHTML = `${timeString}<br>예약 가능`;
+                            td.onclick = () => openBookingPopup(selectedDate, timeString);
+                        }
+
+                        td.style.padding = "8px";
+                        td.style.border = "1px solid #ccc";
+
+                        // 6칸마다 줄바꿈
+                        if (tr.cells.length === 6) {
+                            tr = table.insertRow();
+                        }
+
+                        // 시간 증가
+                        currentMinute += interval;
+                        if (currentMinute >= 60) {
+                            currentMinute -= 60;
+                            currentHour += 1;
+                        }
+                    }
+
+                    // 예약 상태 요약
+                    document.getElementById("main-status-summary").innerText =
+                        `예약된 슬롯: ${reservedCount} / 빈 슬롯: ${totalSlot - reservedCount} / 총 예약인원: ${totalPeople}명`;
+                });
+        }
+
+
+        function bookTimeSlot() {
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                alert("로그인이 필요합니다.");
+                return;
             }
 
-            // 상태 요약 표시
-            document.getElementById("status-summary").innerText =
-                `예약된 슬롯: ${reservedCount} / 빈 슬롯: ${totalSlot - reservedCount} / 총 예약인원: ${totalPeople}명`;
-        });
-}
+            const date = document.getElementById("date").value;
+            const time = document.getElementById("time").value;
+            const people = document.getElementById("people").value;
+            const memberId = document.getElementById("member-id").value;
+            const reserverName = document.getElementById("reserver-name").value;
+            const remarks = document.getElementById("remarks").value;
 
-// ==================== 예약 팝업 열기 ====================
-function openBookingPopup(date, time) {
-    document.getElementById("popup-date").value = date;
-    document.getElementById("popup-time").value = time;
-    document.getElementById("popup-date-text").innerText = date;
-    document.getElementById("popup-time-text").innerText = time;
-    document.getElementById("popup-people").value = '';
-    document.getElementById("popup-member-id").value = '';
-    document.getElementById("popup-reserver-name").value = '';
-    document.getElementById("popup-remarks").value = '';
-    document.getElementById("booking-popup").style.display = "block";
-}
+            if (!date || !time || !people || !memberId || !reserverName) {
+                alert("모든 필드를 입력해주세요.");
+                return;
+            }
 
-// ==================== 예약 팝업 닫기 ====================
-function closeBookingPopup() {
-    document.getElementById("booking-popup").style.display = "none";
-}
+            db.collection("bookings").add({
+                user: user.email,
+                date: date,
+                time: time,
+                people: parseInt(people),
+                memberId: memberId,
+                reserverName: reserverName,
+                remarks: remarks,
+                status: "대기 중"
+            }).then(() => {
+                alert("예약 요청이 완료되었습니다.");
+                loadUserBookings();
+            }).catch(error => {
+                console.error("예약 오류:", error);
+            });
+        }
 
-// ==================== 예약 신청 처리 ====================
-function submitBooking() {
-    const user = firebase.auth().currentUser;
-    if (!user) {
-        alert("로그인이 필요합니다.");
-        return;
-    }
+        function loadUserBookings() {
+            const user = firebase.auth().currentUser;
+            if (!user) return;
 
-    const date = document.getElementById("popup-date").value;
-    const time = document.getElementById("popup-time").value;
-    const people = document.getElementById("popup-people").value;
-    const memberId = document.getElementById("popup-member-id").value;
-    const reserverName = document.getElementById("popup-reserver-name").value;
-    const remarks = document.getElementById("popup-remarks").value;
+            db.collection("bookings").where("user", "==", user.email).get().then(querySnapshot => {
+                const userResults = document.getElementById("user-results");
+                userResults.innerHTML = "<h2>예약 결과</h2>";
 
-    if (!date || !time || !people || !memberId || !reserverName) {
-        alert("모든 필드를 입력해주세요.");
-        return;
-    }
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const resultItem = document.createElement("p");
+                    resultItem.innerHTML = `${data.date} ${data.time} - ${data.reserverName} (${data.people}명) - 상태: ${data.status} - ${data.remarks}`;
+                    userResults.appendChild(resultItem);
+                });
+            });
+        }
 
-    db.collection("bookings").add({
-        user: user.email,
-        date: date,
-        time: time,
-        people: parseInt(people),
-        memberId: memberId,
-        reserverName: reserverName,
-        remarks: remarks,
-        status: "대기 중"
-    }).then(() => {
-        alert("예약 요청이 완료되었습니다.");
-        document.getElementById("booking-popup").style.display = "none";
-        renderStatusTable();
-        loadUserBookings();
-    }).catch(error => {
-        console.error("예약 오류:", error);
-    });
-}
+        function openAdminPanel() {
+            const password = prompt("Digite a senha:");
+            if (password === "adm1234") {
+                document.getElementById("admin-popup").style.display = "block";
+                loadAdminBookings();
+            } else {
+                alert("Senha incorreta.");
+            }
+        }
 
-// ==================== 관리자 예약 목록 불러오기 ====================
-function loadAdminBookings() {
-    db.collection("bookings").orderBy("date").orderBy("time").get().then(querySnapshot => {
-        const bookingList = document.getElementById("booking-list");
-        bookingList.innerHTML = "";
+        function loadAdminBookings() {
+            db.collection("bookings").get().then(querySnapshot => {
+                const bookingList = document.getElementById("booking-list");
+                bookingList.innerHTML = "";
 
-        querySnapshot.forEach(doc => {
-            const data = doc.data();
-            const reasonText = data.status === "승인됨" && data.approveReason ? ` | 승인사유: ${data.approveReason}` :
-                               data.status === "거절됨" && data.rejectReason ? ` | 거절사유: ${data.rejectReason}` : "";
-            const bookingItem = document.createElement("div");
-            bookingItem.innerHTML = `
-                <p>${data.date} ${data.time} - ${data.reserverName} (회원번호: ${data.memberId}, ${data.people}명) - 상태: ${data.status}${reasonText} - ${data.remarks}
-                <button onclick="approveBooking('${doc.id}')">승인</button>
-                <button onclick="rejectBooking('${doc.id}')">거절</button></p>
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const bookingItem = document.createElement("div");
+                    bookingItem.innerHTML = `
+                        <p>${data.date} ${data.time} - ${data.reserverName} (회원번호: ${data.memberId}, ${data.people}명) - 상태: ${data.status} - ${data.remarks}
+                        <button onclick="approveBooking('${doc.id}')">승인</button>
+                        <button onclick="rejectBooking('${doc.id}')">거절</button></p>
+                    `;
+                    bookingList.appendChild(bookingItem);
+                });
+            });
+        }
+
+        function approveBooking(id) {
+            db.collection("bookings").doc(id).update({ status: "승인됨" }).then(() => {
+                alert("예약이 승인되었습니다.");
+                loadAdminBookings();
+            });
+        }
+
+        function rejectBooking(id) {
+            db.collection("bookings").doc(id).update({ status: "거절됨" }).then(() => {
+                alert("예약이 거절되었습니다.");
+                loadAdminBookings();
+            });
+        }
+
+        function closeAdminPanel() {
+            document.getElementById("admin-popup").style.display = "none";
+        }
+        function renderStatusTable() {
+            const selectedDate = document.getElementById("status-date").value;
+            if (!selectedDate) return;
+
+            const table = document.getElementById("status-table");
+            table.innerHTML = `
+                <tr style="background: #f5f5f5;">
+                    <th style="padding:8px; border:1px solid #ccc;">시간</th>
+                    <th style="padding:8px; border:1px solid #ccc;">상태</th>
+                </tr>
             `;
-            bookingList.appendChild(bookingItem);
-        });
-    });
-}
 
-// ==================== 관리자 승인 ====================
-function approveBooking(id) {
-    const reason = prompt("승인 사유를 입력하세요 (선택사항, 비워도 가능):", "");
-    db.collection("bookings").doc(id).update({ 
-        status: "승인됨",
-        approveReason: reason || ""
-    }).then(() => {
-        alert("예약이 승인되었습니다.");
-        loadAdminBookings();
-        renderStatusTable();
-    });
-}
+            db.collection("bookings")
+                .where("date", "==", selectedDate)
+                .where("status", "==", "승인됨")
+                .get()
+                .then(snapshot => {
+                    const reservedTimes = [];
+                    snapshot.forEach(doc => {
+                        reservedTimes.push(doc.data().time);
+                    });
 
-// ==================== 관리자 거절 ====================
-function rejectBooking(id) {
-    const reason = prompt("거절 사유를 입력하세요 (필수)");
-    if (!reason) {
-        alert("거절 사유를 입력해야 합니다.");
-        return;
-    }
-    db.collection("bookings").doc(id).update({ 
-        status: "거절됨",
-        rejectReason: reason
-    }).then(() => {
-        alert("예약이 거절되었습니다.");
-        loadAdminBookings();
-        renderStatusTable();
-    });
-}
+                    let startHour = 5;
+                    let startMinute = 20;
+                    let endHour = 11;
+                    let endMinute = 20;
+                    let interval = 8;
 
-// ==================== 내 예약 내역 로드 ====================
-function loadUserBookings() {
-    const user = firebase.auth().currentUser;
-    if (!user) return;
+                    let currentHour = startHour;
+                    let currentMinute = startMinute;
 
-    db.collection("bookings").where("user", "==", user.email).orderBy("date").orderBy("time").get().then(querySnapshot => {
-        const userResults = document.getElementById("user-results");
-        userResults.innerHTML = "<h2>예약 결과</h2>";
+                    while (currentHour < endHour || (currentHour === endHour && currentMinute <= endMinute)) {
+                        let timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+                        let row = table.insertRow();
+                        
+                        if (reservedTimes.includes(timeString)) {
+                            row.style.backgroundColor = '#e0e0e0'; // 회색
+                        } else {
+                            row.style.backgroundColor = '#d0f5d0'; // 연두색
+                            row.style.cursor = 'pointer';
 
-        querySnapshot.forEach(doc => {
-            const data = doc.data();
-            const reasonText = data.status === "승인됨" && data.approveReason ? ` | 승인사유: ${data.approveReason}` :
-                               data.status === "거절됨" && data.rejectReason ? ` | 거절사유: ${data.rejectReason}` : "";
-            const resultItem = document.createElement("p");
-            resultItem.innerHTML = `${data.date} ${data.time} - ${data.reserverName} (${data.people}명) - 상태: ${data.status}${reasonText} - ${data.remarks}`;
-            userResults.appendChild(resultItem);
-        });
-    });
-}
+                            // ✅ 여기부터 추가된 부분
+                            row.onclick = () => {
+                                // 팝업 닫기
+                                document.getElementById("status-popup").style.display = "none";
+                                // 예약 화면 열기
+                                document.getElementById("booking-section").style.display = "block";
+                                document.getElementById("user-results").style.display = "block";
+                                // 날짜, 시간 자동 채우기
+                                document.getElementById("date").value = selectedDate;
+                                document.getElementById("time").innerHTML = `<option value="${timeString}">${timeString}</option>`;
+                            };
+                        }
 
-// ==================== 페이지 로딩 시 ====================
-document.addEventListener("DOMContentLoaded", function() {
-    document.getElementById("admin-button").style.display = "none";
-    document.getElementById("status-button").style.display = "none";
-});
-</script>
+                        row.onmouseover = () => row.style.opacity = '0.7';
+                        row.onmouseout = () => row.style.opacity = '1';
 
+                        row.insertCell(0).innerText = timeString;
+                        row.insertCell(1).innerText = reservedTimes.includes(timeString) ? "예약 완료" : "예약 가능";
+
+                        row.cells[0].style.padding = "8px";
+                        row.cells[0].style.border = "1px solid #ccc";
+                        row.cells[1].style.padding = "8px";
+                        row.cells[1].style.border = "1px solid #ccc";
+
+                        currentMinute += interval;
+                        if (currentMinute >= 60) {
+                            currentMinute -= 60;
+                            currentHour += 1;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error("예약 현황 불러오기 실패:", error);
+                });
+        }
+        
+    </script>
+</head>
+<body>
+    <!-- 메인 예약표 (로그인 후 바로 보여질) -->
+    <div id="main-table-section" style="display:none; padding:20px;">
+        <h2>예약 가능 시간표</h2>
+        <table id="main-status-table" style="width:100%; border-collapse: collapse; margin-top:10px;">
+            <tr>
+                <th>시간</th>
+                <th>상태</th>
+            </tr>
+        </table>
+        <p id="main-status-summary" style="margin-top: 15px; font-weight:bold;"></p>
+    </div>
+
+    <button id="admin-button" onclick="openAdminPanel()">ADM</button>
+    <button id="status-button" onclick="document.getElementById('status-popup').style.display='block'" style="position: fixed; top: 10px; left: 100px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; font-size: 16px;">Status</button>
+
+
+    <!-- 로그인 섹션 -->
+    <div id="login-section">
+        <h2>Google 로그인</h2>
+        <button onclick="googleLogin()">Google 계정으로 로그인</button>
+    </div>
+
+    <!-- ✅ 세로 배치 구조로 변경된 코드 -->
+    <div id="main-container" style="display:none; flex-direction: column; gap: 20px; width: 100%;">
+
+        <!-- 예약 신청 섹션 -->
+        <div id="booking-section">
+            <h2>골프장 예약</h2>
+            <label for="date">날짜:</label>
+            <input type="date" id="date"><br>
+
+            <label for="time">시간:</label>
+            <select id="time"></select><br>
+
+            <label for="people">인원수:</label>
+            <input type="number" id="people" min="1" max="4"><br>
+
+            <label for="member-id">회원번호:</label>
+            <input type="text" id="member-id"><br>
+
+            <label for="reserver-name">예약자명:</label>
+            <input type="text" id="reserver-name"><br>
+
+            <label for="remarks">비고:</label>
+            <input type="text" id="remarks" placeholder="예: 10번홀부터"><br>
+
+            <button onclick="bookTimeSlot()">예약 신청</button>
+        </div>
+
+        <!-- 구분선 -->
+        <hr style="margin: 20px 0; border: none; border-top: 2px solid #ccc;">
+
+        <!-- 사용자 예약 결과 -->
+        <div id="user-results">
+            <h2>예약 결과</h2>
+            <!-- 예약 내역이 여기에 들어감 -->
+        </div>
+
+    </div>
+
+
+    <!-- 관리자 팝업 -->
+    <div id="admin-popup">
+        <h2>예약 관리</h2>
+        <div id="booking-list"></div>
+        <button onclick="closeAdminPanel()">닫기</button>
+    </div>
+   <!-- 수정 후 -->
+<div id="status-popup" style="display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 90vw; max-width: 500px; background: white; border: 1px solid #ccc; padding: 20px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3); overflow-y: auto; max-height: 90vh;">
+        <!-- 날짜 선택 -->
+        <h2>예약 가능 시간표</h2>
+        <label for="status-date">날짜 선택:</label>
+        <input type="date" id="status-date" onchange="renderStatusTable()">
+
+        <!-- 시간표 -->
+        <table id="status-table" style="
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            table-layout: fixed;
+            word-break: break-word;
+            font-size: 14px;
+            border: 1px solid #ccc;
+        ">
+            <tr style="background: #f5f5f5;">
+                <th style="padding: 8px; border: 1px solid #ccc;">시간</th>
+                <th style="padding: 8px; border: 1px solid #ccc;">상태</th>
+            </tr>
+        </table>
+        <button onclick="closeStatusPanel()">닫기</button>
+    </div>
 </body>
 </html>
