@@ -237,6 +237,20 @@
             });
         }
 
+        function openBookingPopup(date, time) {
+            document.getElementById("popup-date").value = date;
+            document.getElementById("popup-time").value = time;
+            document.getElementById("popup-people").value = "";
+            document.getElementById("popup-member-id").value = "";
+            document.getElementById("popup-reserver-name").value = "";
+            document.getElementById("popup-remarks").value = "";
+            document.getElementById("booking-popup").style.display = "block";
+        }
+
+        function closeBookingPopup() {
+            document.getElementById("booking-popup").style.display = "none";
+        }
+
         function renderMainStatusTable(selectedDate) {
             const table = document.getElementById("main-status-table");
             table.innerHTML = `
@@ -341,6 +355,37 @@
                 console.error("예약 오류:", error);
             });
         }
+
+        function bookTimeSlotFromPopup() {
+            const user = firebase.auth().currentUser;
+            if (!user) return alert("로그인 필요");
+
+            const date = document.getElementById("popup-date").value;
+            const time = document.getElementById("popup-time").value;
+            const people = document.getElementById("popup-people").value;
+            const memberId = document.getElementById("popup-member-id").value;
+            const reserverName = document.getElementById("popup-reserver-name").value;
+            const remarks = document.getElementById("popup-remarks").value;
+
+            if (!people || !memberId || !reserverName) {
+                alert("모든 필드를 입력해주세요.");
+                return;
+            }
+
+            db.collection("bookings").add({
+                user: user.email,
+                date, time,
+                people: parseInt(people),
+                memberId, reserverName, remarks,
+                status: "대기 중"
+            }).then(() => {
+                alert("예약 요청이 완료되었습니다.");
+                closeBookingPopup();
+                renderMainStatusTable(date);  // 표 갱신
+                loadUserBookings();          // 내 예약 갱신
+            });
+        }
+
 
         function loadUserBookings() {
             const user = firebase.auth().currentUser;
@@ -484,9 +529,20 @@
     </script>
 </head>
 <body>
+    <div id="booking-popup" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%, -50%); background:white; border:1px solid #ccc; padding:20px; box-shadow:0 0 10px rgba(0,0,0,0.3); z-index:1000;">
+        <h3>예약 신청</h3>
+        <input type="text" id="popup-date" readonly><br>
+        <input type="text" id="popup-time" readonly><br>
+        <input type="number" id="popup-people" min="1" max="4" placeholder="인원수"><br>
+        <input type="text" id="popup-member-id" placeholder="회원번호"><br>
+        <input type="text" id="popup-reserver-name" placeholder="예약자명"><br>
+        <input type="text" id="popup-remarks" placeholder="비고"><br>
+        <button onclick="bookTimeSlotFromPopup()">예약 신청</button>
+        <button onclick="closeBookingPopup()">닫기</button>
+    </div>
+    
     <!-- 메인 예약표 (로그인 후 바로 보여질) -->
     <div id="main-table-section" style="display:none; padding:20px;">
-        <h2>예약 가능 시간표</h2>
         <table id="main-status-table" style="width:100%; border-collapse: collapse; margin-top:10px;">
             <tr>
                 <th>시간</th>
@@ -510,7 +566,7 @@
     <div id="main-container" style="display:none; flex-direction: column; gap: 20px; width: 100%;">
 
         <!-- 예약 신청 섹션 -->
-        <div id="booking-section">
+        <div id="booking-section" style="display:none;">
             <h2>골프장 예약</h2>
             <label for="date">날짜:</label>
             <input type="date" id="date"><br>
