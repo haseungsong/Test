@@ -125,6 +125,58 @@
             max-width: 600px;
             margin: 0 auto;
         }
+        #booking-popup {
+            display:none;
+            position:fixed;
+            left:50%;
+            top:50%;
+            transform:translate(-50%, -50%);
+            width: 320px;
+            background:white;
+            border:1px solid #ccc;
+            padding:20px;
+            box-shadow:0 0 15px rgba(0,0,0,0.4);
+            border-radius:10px;
+            z-index:1000;
+        }
+
+        #booking-popup input, #booking-popup button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        #booking-popup button {
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #booking-popup button:first-of-type {
+            background: #28a745;
+            color: #fff;
+        }
+
+        #booking-popup button:last-of-type {
+            background: #ccc;
+            color: #333;
+        }
+
+        @media(max-width: 500px) {
+            #booking-popup {
+                width: 90vw;
+                padding: 15px;
+            }
+
+            #booking-popup input, #booking-popup button {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+
+
+
     </style>
     <script>
         // Firebase 설정
@@ -341,16 +393,18 @@
 
             db.collection("bookings").add({
                 user: user.email,
-                date: date,
-                time: time,
+                date, time,
                 people: parseInt(people),
-                memberId: memberId,
-                reserverName: reserverName,
-                remarks: remarks,
+                memberId, reserverName, remarks,
                 status: "대기 중"
             }).then(() => {
                 alert("예약 요청이 완료되었습니다.");
+                closeBookingPopup();
+                // --- 여기 추가 ---
+                setTimeout(() => renderMainStatusTable(date), 300);  // Firebase write delay 보정 후 갱신
+                // ----------------
                 loadUserBookings();
+
             }).catch(error => {
                 console.error("예약 오류:", error);
             });
