@@ -182,13 +182,14 @@
         }
 
         #main-status-table th, #main-status-table td {
-            width: 14.28%;     /* 정확히 7칸 */
-            font-weight: bold; /* Bold 적용 */
+            width: 14.28%;
+            font-weight: bold;
             text-align: center;
-            padding: 7px;
+            padding: 5px;         /* 조금 줄임 */
             border: 1px solid #ccc;
-            word-break: keep-all; /* ✨ 단어 단위 줄바꿈 */
-            white-space: nowrap;  /* ✨ 줄바꿈 금지 */
+            word-break: keep-all;
+            white-space: nowrap;
+            font-size: 11px;      /* ✅ 글자 크기 줄임 */
         }
         
         #main-status-table th[colspan="7"] {
