@@ -183,6 +183,17 @@
             padding: 8px;
             border: 1px solid #ccc;
             word-break: break-word;
+            word-wrap: break-word; /* 💡 추가 */
+        }
+
+        @media(max-width: 600px) {
+            #main-status-table {
+                font-size: 12px;
+            }
+            #main-status-table th, #main-status-table td {
+                padding: 4px;
+                font-size: 12px;
+            }
         }
 
         @media(max-width: 500px) {
@@ -330,7 +341,7 @@
             const table = document.getElementById("main-status-table");
             table.innerHTML = `
                 <tr>
-                    <th colspan="6">예약 가능 시간표 (${selectedDate})</th>
+                    <th colspan="7">예약 가능 시간표 (${selectedDate})</th>
                 </tr>
             `;
 
