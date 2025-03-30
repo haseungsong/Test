@@ -80,10 +80,12 @@
             word-wrap: break-word;   /* ✅ 추가 */
         }      
         #main-table-section {
-            width: 100%;          /* ✅ 추가 */
-            display: none;
-            padding: 20px;
+            width: auto;                /* ✅ 가변 */
+            max-width: 100%;            /* ✅ 넘치지 않게 */
+            padding: 10px;
             margin-top: 20px; /* ✅ 버튼 높이 + 여유 공간 */
+            display: flex;     /* ✅ 추가 */
+            justify-content: center; /* ✅ 추가 */
         }
         #status-table tr:hover {
             opacity: 0.8;
