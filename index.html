@@ -24,6 +24,7 @@
             border: none;
             cursor: pointer;
             font-size: 16px;
+            z-index: 999; /* 겹칠 때 항상 위로 */
         }
         #admin-popup {
             display: none;
@@ -81,6 +82,9 @@
         #main-table-section {
             width: 100%;          /* ✅ 추가 */
             overflow-x: auto;      /* ✅ 추가 */
+            display: none;
+            padding: 20px;
+            margin-top: 70px; /* ✅ 버튼 높이 + 여유 공간 */
         }
         #status-table tr:hover {
             opacity: 0.8;
@@ -654,7 +658,7 @@
     </div>
 
     <button id="admin-button" onclick="openAdminPanel()">ADM</button>
-    <button id="status-button" onclick="document.getElementById('status-popup').style.display='block'" style="position: fixed; top: 10px; left: 100px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; font-size: 16px;">Status</button>
+    <button id="status-button" onclick="document.getElementById('status-popup').style.display='block'" style="position: fixed; top: 10px; left: 100px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; font-size: 16px;z-index: 999;">STATUS</button>
 
 
     <!-- 로그인 섹션 -->
