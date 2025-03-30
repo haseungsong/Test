@@ -180,10 +180,10 @@
             width: 14.28%;     /* 정확히 7칸 */
             font-weight: bold; /* Bold 적용 */
             text-align: center;
-            padding: 8px;
+            padding: 5px;
             border: 1px solid #ccc;
-            word-break: break-word;
-            word-wrap: break-word; /* 💡 추가 */
+            word-break: keep-all; /* ✨ 단어 단위 줄바꿈 */
+            white-space: nowrap;  /* ✨ 줄바꿈 금지 */
         }
 
         @media(max-width: 600px) {
@@ -643,7 +643,7 @@
     </div>
     
     <!-- 메인 예약표 (로그인 후 바로 보여질) -->
-    <div id="main-table-section" style="display:none; padding:20px;">
+    <div id="main-table-section" style="display:none;">
         <table id="main-status-table">
             <tr>
                 <th>시간</th>
