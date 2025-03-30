@@ -75,6 +75,12 @@
         #status-table th, #status-table td {
             text-align: center;
             font-size: 14px;
+            box-sizing: border-box; /* ✅ 추가 */
+            word-wrap: break-word;   /* ✅ 추가 */
+        }      
+        #main-table-section {
+            width: 100%;          /* ✅ 추가 */
+            overflow-x: auto;      /* ✅ 추가 */
         }
         #status-table tr:hover {
             opacity: 0.8;
@@ -611,7 +617,11 @@
     
     <!-- 메인 예약표 (로그인 후 바로 보여질) -->
     <div id="main-table-section" style="display:none; padding:20px;">
-        <table id="main-status-table" style="width:100%; border-collapse: collapse; margin-top:10px;">
+        <table id="main-status-table" style=" width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        margin-top: 10px;
+        box-sizing: border-box;">
             <tr>
                 <th>시간</th>
                 <th>상태</th>
