@@ -169,6 +169,22 @@
             color: #333;
         }
 
+        #main-status-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-top: 10px;
+        }
+
+        #main-status-table th, #main-status-table td {
+            width: 14.28%;     /* 정확히 7칸 */
+            font-weight: bold; /* Bold 적용 */
+            text-align: center;
+            padding: 8px;
+            border: 1px solid #ccc;
+            word-break: break-word;
+        }
+
         @media(max-width: 500px) {
             #booking-popup {
                 width: 90vw;
@@ -348,11 +364,11 @@
                         // 예약 여부
                         if (reservedTimes.includes(timeString)) {
                             td.classList.add('reserved');
-                            td.innerHTML = `${timeString}<br>예약 완료`;
+                            td.innerHTML = `<strong>${timeString}</strong><br>예약 완료`;
                             td.style.pointerEvents = 'none'; // 클릭 막기
                         } else {
                             td.classList.add('available');
-                            td.innerHTML = `${timeString}<br>예약 가능`;
+                            td.innerHTML = `<strong>${timeString}</strong><br>예약 가능`;
                             td.onclick = () => openBookingPopup(selectedDate, timeString);
                         }
 
@@ -617,11 +633,7 @@
     
     <!-- 메인 예약표 (로그인 후 바로 보여질) -->
     <div id="main-table-section" style="display:none; padding:20px;">
-        <table id="main-status-table" style=" width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
-        margin-top: 10px;
-        box-sizing: border-box;">
+        <table id="main-status-table">
             <tr>
                 <th>시간</th>
                 <th>상태</th>
