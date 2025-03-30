@@ -241,6 +241,30 @@
         // 로그인 전에는 관리자 버튼 숨김
         document.getElementById("admin-button").style.display = "none";
         document.getElementById("status-button").style.display = "none";
+
+            auth.onAuthStateChanged(user => {
+        if (user) {
+            // 로그인 되어있으면 바로 UI 복구
+            document.getElementById("login-section").style.display = "none"; 
+            document.getElementById("admin-button").style.display = "block"; 
+            document.getElementById("status-button").style.display = "block"; 
+            document.getElementById("main-container").style.display = "flex"; 
+            document.getElementById("main-table-section").style.display = "block"; 
+
+            // 내일 날짜 자동 설정
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const yyyy = tomorrow.getFullYear();
+            const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const dd = String(tomorrow.getDate() + 1).padStart(2, '0');
+            const nextDateStr = `${yyyy}-${mm}-${dd}`;
+            document.getElementById('status-date').value = nextDateStr;
+
+            // 자동으로 다시 테이블 그리기
+            renderMainStatusTable(nextDateStr);
+            loadUserBookings();
+        }
+    });
     });
 
             function openStatusPanel() {
