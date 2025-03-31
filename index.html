@@ -185,7 +185,7 @@
             width: 14.28%;
             font-weight: bold;
             text-align: center;
-            padding: 5px;         /* 조금 줄임 */
+            padding: 10px 5px;    /* 세로(padding-top/bottom) 늘림 */
             border: 1px solid #ccc;
             word-break: keep-all;
             white-space: nowrap;
@@ -416,12 +416,12 @@
                         let td = tr.insertCell();
 
                         if (reservedTimes.includes(timeString)) {
-                            td.innerHTML = `<strong>${timeString}</strong><br>예약 완료`;
+                            td.innerHTML = `<strong>${timeString}</strong><br><span>예약 완료</span>`;
                             td.style.backgroundColor = "#ffdddd";
                             td.style.color = "#990000";
                             td.style.pointerEvents = "none";
                         } else {
-                            td.innerHTML = `<strong>${timeString}</strong><br>예약 가능`;
+                            td.innerHTML = `<strong>${timeString}</strong><br><span>예약 가능</span>`;
                             td.style.backgroundColor = "#ddffdd";
                             td.style.color = "#006600";
                             td.onclick = () => openBookingPopup(selectedDate, timeString);
